@@ -572,6 +572,37 @@ fold_const_nextafter (real_value *result, const real_value *arg0,
 
 /* Try to evaluate:
 
+      *RESULT = add/sub/mul/div (*ARG0, *ARG1)
+
+   in format FORMAT.  Return true on success.  */
+
+static bool
+fold_const_narrow_binary (real_value *result, const real_value *arg0,
+			  int icode, const real_value *arg1,
+			  const real_format *format)
+{
+  if (REAL_VALUE_ISSIGNALING_NAN (*arg0)
+      || REAL_VALUE_ISSIGNALING_NAN (*arg1))
+    return false;
+
+  if (real_arithmetic (result, icode, arg0, arg1)
+      && (flag_rounding_math || flag_trapping_math))
+    return false;
+
+  real_convert (result, format, result);
+  /* Overflow/underflow condition.  */
+  if (!real_isfinite (result) && !flag_errno_math)
+    return false;
+
+  if (REAL_VALUE_ISNAN (*result)
+      && (flag_errno_math || flag_trapping_math))
+    return false;
+
+  return true;
+}
+
+/* Try to evaluate:
+
       *RESULT = ldexp (*ARG0, ARG1)
 
    in format FORMAT.  Return true on success.  */
@@ -1673,6 +1704,25 @@ fold_const_call (combined_fn fn, tree type, tree arg0, tree arg1)
 
     case CFN_FOLD_LEFT_PLUS:
       return fold_const_fold_left (type, arg0, arg1, PLUS_EXPR);
+
+    case CFN_BUILT_IN_FADD:
+    case CFN_BUILT_IN_FADDL:
+    case CFN_BUILT_IN_DADDL:
+      {
+	if (real_cst_p (arg0)
+	    && real_cst_p (arg1))
+	  {
+	    machine_mode arg0_mode = TYPE_MODE (TREE_TYPE (arg0));
+	    gcc_checking_assert (SCALAR_FLOAT_MODE_P (arg0_mode));
+	    REAL_VALUE_TYPE result;
+	    machine_mode mode = TYPE_MODE (type);
+	    if (fold_const_narrow_binary (&result, TREE_REAL_CST_PTR (arg0),
+					  PLUS_EXPR, TREE_REAL_CST_PTR (arg1),
+					  REAL_MODE_FORMAT (mode)))
+	      return build_real (type, result);
+	  }
+      }
+      return NULL_TREE;
 
     default:
       return fold_const_call_1 (fn, type, arg0, arg1);
