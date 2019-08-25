@@ -6043,6 +6043,14 @@ not.
 
 This pattern is not allowed to @code{FAIL}.
 
+@cindex @code{roundeven@var{m}2} instruction pattern
+@item @samp{roundeven@var{m}2}
+Round operand 1 to the nearest integer, rounding towards nearset integer
+in the event of a tie, and store the result in operand 0.  Both operands
+have mode @var{m}, which is a scalar or vector floating-point mode.
+
+This pattern is not allowed to @code{FAIL}.
+
 @cindex @code{ceil@var{m}2} instruction pattern
 @item @samp{ceil@var{m}2}
 Store the smallest integral value not less than operand 1 in operand 0.
