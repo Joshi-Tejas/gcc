@@ -1724,6 +1724,63 @@ fold_const_call (combined_fn fn, tree type, tree arg0, tree arg1)
       }
       return NULL_TREE;
 
+    case CFN_BUILT_IN_FSUB:
+    case CFN_BUILT_IN_FSUBL:
+    case CFN_BUILT_IN_DSUBL:
+      {
+	if (real_cst_p (arg0)
+	    && real_cst_p (arg1))
+	  {
+	    machine_mode arg0_mode = TYPE_MODE (TREE_TYPE (arg0));
+	    gcc_checking_assert (SCALAR_FLOAT_MODE_P (arg0_mode));
+	    REAL_VALUE_TYPE result;
+	    machine_mode mode = TYPE_MODE (type);
+	    if (fold_const_narrow_binary (&result, TREE_REAL_CST_PTR (arg0),
+					  MINUS_EXPR, TREE_REAL_CST_PTR (arg1),
+					  REAL_MODE_FORMAT (mode)))
+	      return build_real (type, result);
+	  }
+      }
+      return NULL_TREE;
+
+    case CFN_BUILT_IN_FMUL:
+    case CFN_BUILT_IN_FMULL:
+    case CFN_BUILT_IN_DMULL:
+      {
+	if (real_cst_p (arg0)
+	    && real_cst_p (arg1))
+	  {
+	    machine_mode arg0_mode = TYPE_MODE (TREE_TYPE (arg0));
+	    gcc_checking_assert (SCALAR_FLOAT_MODE_P (arg0_mode));
+	    REAL_VALUE_TYPE result;
+	    machine_mode mode = TYPE_MODE (type);
+	    if (fold_const_narrow_binary (&result, TREE_REAL_CST_PTR (arg0),
+					  MULT_EXPR, TREE_REAL_CST_PTR (arg1),
+					  REAL_MODE_FORMAT (mode)))
+	      return build_real (type, result);
+	  }
+      }
+      return NULL_TREE;
+
+    case CFN_BUILT_IN_FDIV:
+    case CFN_BUILT_IN_FDIVL:
+    case CFN_BUILT_IN_DDIVL:
+      {
+	if (real_cst_p (arg0)
+	    && real_cst_p (arg1))
+	  {
+	    machine_mode arg0_mode = TYPE_MODE (TREE_TYPE (arg0));
+	    gcc_checking_assert (SCALAR_FLOAT_MODE_P (arg0_mode));
+	    REAL_VALUE_TYPE result;
+	    machine_mode mode = TYPE_MODE (type);
+	    if (fold_const_narrow_binary (&result, TREE_REAL_CST_PTR (arg0),
+					  RDIV_EXPR, TREE_REAL_CST_PTR (arg1),
+					  REAL_MODE_FORMAT (mode)))
+	      return build_real (type, result);
+	  }
+      }
+      return NULL_TREE;
+
     default:
       return fold_const_call_1 (fn, type, arg0, arg1);
     }
