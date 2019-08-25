@@ -67,6 +67,7 @@ OPTAB_CD(sfixtrunc_optab, "fix_trunc$F$b$I$a2")
 OPTAB_CD(ufixtrunc_optab, "fixuns_trunc$F$b$I$a2")
 
 /* Misc optabs that use two modes; model them as "conversions".  */
+OPTAB_CD(fadd_optab, "add_trunc$b$a3")
 OPTAB_CD(smul_widen_optab, "mul$b$a3")
 OPTAB_CD(umul_widen_optab, "umul$b$a3")
 OPTAB_CD(usmul_widen_optab, "usmul$b$a3")

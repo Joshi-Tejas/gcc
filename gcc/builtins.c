@@ -2941,6 +2941,54 @@ expand_builtin_powi (tree exp, rtx target)
   return target;
 }
 
+/* Attempt to expand a builtin function call EXP which performs a binary
+   operation on its floating point arguments and then converts the result into
+   a different floating point format.  The operation in question is specified
+   in OP_OPTAB.  Return NULL if the attempt failed.  SUBTARGET may be used as
+   the target for computing the operand of EXP.  */
+
+static rtx
+expand_builtin_binary_conversion (tree exp, rtx target, rtx subtarget,
+				  optab op_optab)
+{
+  if (TREE_CODE (TREE_TYPE (exp)) != REAL_TYPE
+      || !validate_arglist (exp, REAL_TYPE, REAL_TYPE, VOID_TYPE))
+    return NULL_RTX;
+
+  tree arg0 = CALL_EXPR_ARG (exp, 0);
+  tree arg1 = CALL_EXPR_ARG (exp, 1);
+  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (arg0))
+	      == TYPE_MAIN_VARIANT (TREE_TYPE (arg1)));
+  machine_mode arg_mode = TYPE_MODE (TREE_TYPE (arg1));
+  machine_mode res_mode = TYPE_MODE (TREE_TYPE (exp));
+
+  insn_code icode = convert_optab_handler (op_optab, res_mode, arg_mode);
+  if (icode == CODE_FOR_nothing)
+    return NULL_RTX;
+
+  /* Wrap the computation of the arguments in a SAVE_EXPR, as we may
+     need to expand the argument again.  This way, we will not perform
+     side-effects more the once.  */
+  CALL_EXPR_ARG (exp, 0) = arg0 = builtin_save_expr (arg0);
+  CALL_EXPR_ARG (exp, 1) = arg1 = builtin_save_expr (arg1);
+
+  rtx op0 = expand_expr (arg0, subtarget, VOIDmode, EXPAND_NORMAL);
+  rtx op1 = expand_expr (arg1, subtarget, VOIDmode, EXPAND_NORMAL);
+
+  struct expand_operand ops[3];
+  create_output_operand (&ops[0], target, res_mode);
+  create_input_operand (&ops[1], op0, arg_mode);
+  create_input_operand (&ops[2], op1, arg_mode);
+  rtx_insn *pat = maybe_gen_insn (icode, 3, ops);
+  if (pat)
+    {
+      emit_insn (pat);
+      return ops[0].value;
+    }
+
+  return NULL_RTX;
+}
+
 /* Expand expression EXP which is a call to the strlen builtin.  Return
    NULL_RTX if we failed and the caller should emit a normal call, otherwise
    try to get the result in TARGET, if convenient.  */
@@ -7396,6 +7444,13 @@ expand_builtin (tree exp, rtx target, rtx subtarget, machine_mode mode,
       target = expand_builtin_sincos (exp);
       if (target)
 	return target;
+      break;
+
+    case BUILT_IN_FADD:
+      target = expand_builtin_binary_conversion (exp, target, subtarget,
+						 fadd_optab);
+      if (target)
+       return target;
       break;
 
     case BUILT_IN_APPLY_ARGS:
